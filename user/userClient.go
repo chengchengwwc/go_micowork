@@ -5,6 +5,7 @@ import (
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/registry"
 	consul2 "github.com/micro/go-plugins/registry/consul/v2"
+	ratelimit "github.com/micro/go-plugins/wrapper/ratelimiter/uber/v2"
 	opentracing2 "github.com/micro/go-plugins/wrapper/trace/opentracing/v2"
 	"github.com/opentracing/opentracing-go"
 	"log"
@@ -34,6 +35,8 @@ func main() {
 		micro.Registry(consul),
 		//绑定链路追踪
 		micro.WrapClient(opentracing2.NewClientWrapper(opentracing.GlobalTracer())),
+		// 添加限流
+		micro.WrapHandler(ratelimit.NewHandlerWrapper(100)),
 	)
 	userService := server_user.NewUserService("go.micro.service.user", service.Client())
 	response, err := userService.Login(context.TODO(), &server_user.UserLoginRequest{})

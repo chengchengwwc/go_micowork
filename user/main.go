@@ -8,6 +8,7 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-plugins/registry/consul/v2"
+	ratelimit "github.com/micro/go-plugins/wrapper/ratelimiter/uber/v2"
 	opentracing2 "github.com/micro/go-plugins/wrapper/trace/opentracing/v2"
 	"github.com/opentracing/opentracing-go"
 	"user/common"
@@ -45,6 +46,8 @@ func main() {
 		micro.Address("127.0.0.1:8082"),
 		micro.Registry(consulRegistry),
 		micro.WrapHandler(opentracing2.NewHandlerWrapper(opentracing.GlobalTracer())),
+		// 添加限流
+		micro.WrapHandler(ratelimit.NewHandlerWrapper(100)),
 	)
 	src.Init()
 	mysqlInfo := common.GetMySqlFromConsul(consulConfig, "mysql")
