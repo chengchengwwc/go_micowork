@@ -8,6 +8,8 @@ import (
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-plugins/registry/consul/v2"
+	opentracing2 "github.com/micro/go-plugins/wrapper/trace/opentracing/v2"
+	"github.com/opentracing/opentracing-go"
 	"user/common"
 	"user/domain/repository"
 	service2 "user/domain/service"
@@ -28,12 +30,21 @@ func main() {
 			"127.0.0.1:8500",
 		}
 	})
+	// 链路追踪
+	t, io, err := common.NewTracer("go.micro.service.user", "localhost:6831")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	defer io.Close()
+	opentracing.SetGlobalTracer(t)
 
 	src := micro.NewService(
 		micro.Name("go.micro.service.user"),
 		micro.Version("lastest"),
 		micro.Address("127.0.0.1:8082"),
 		micro.Registry(consulRegistry),
+		micro.WrapHandler(opentracing2.NewHandlerWrapper(opentracing.GlobalTracer())),
 	)
 	src.Init()
 	mysqlInfo := common.GetMySqlFromConsul(consulConfig, "mysql")
