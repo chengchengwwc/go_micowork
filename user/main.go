@@ -1,25 +1,37 @@
 package main
 
 import (
+	"fmt"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/micro/go-micro/v2"
+	"user/domain/repository"
+	service2 "user/domain/service"
 	"user/handler"
-	pb "user/proto"
-
-	"github.com/micro/micro/v3/service"
-	"github.com/micro/micro/v3/service/logger"
+	pb "user/proto/user"
 )
 
 func main() {
-	// Create service
-	srv := service.New(
-		service.Name("user"),
-		service.Version("latest"),
+	src := micro.NewService(
+		micro.Name("go.micro.service.user"),
+		micro.Version("lastest"),
 	)
-
-	// Register handler
-	pb.RegisterUserHandler(srv.Server(), new(handler.User))
-
-	// Run service
-	if err := srv.Run(); err != nil {
-		logger.Fatal(err)
+	src.Init()
+	db, err := gorm.Open("mysql", "root:123456@/micro?charset=utf8&parseTime=True&loc=Local")
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
+	defer db.Close()
+	db.SingularTable(true)
+	userDataService := service2.NewUserDataService(repository.NewUserRepository(db))
+	err = pb.RegisterUserHandler(src.Server(), &handler.User{UserDataService: userDataService})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if err := src.Run(); err != nil {
+		fmt.Println(err)
+	}
+
 }
